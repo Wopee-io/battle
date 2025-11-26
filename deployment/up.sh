@@ -26,19 +26,15 @@ ls -la $ABS_PROJECT_DIR
 # replace dots with dashes for docker compose project name
 DEPLOYMENT_NAME=${DEPLOYMENT//./-}
 
-docker compose --project-name "${DEPLOYMENT_NAME}" -f ./deployment/${DEPLOYMENT}/docker-compose.yml pull && wait $!
+docker compose --project-name "${DEPLOYMENT_NAME}" -f ./docker-compose.yml pull && wait $!
 
-# Pre-pull the studio image that will be used by the spawner
-echo "Pre-pulling studio image for spawner..."
-docker pull ghcr.io/autonomous-testing/studio:latest
-
-# Force rebuild spawner if requested
-if [ "${FORCE_REBUILD_SPAWNER}" = "true" ]; then
-  echo "Force rebuilding spawner image (--no-cache)..."
-  docker compose --project-name "${DEPLOYMENT_NAME}" -f ./deployment/${DEPLOYMENT}/docker-compose.yml build --no-cache spawner
+# Force rebuild if requested
+if [ "${FORCE_REBUILD}" = "true" ]; then
+  echo "Force rebuilding images (--no-cache)..."
+  docker compose --project-name "${DEPLOYMENT_NAME}" -f ./docker-compose.yml build --no-cache
 fi
 
-docker compose --project-name "${DEPLOYMENT_NAME}" -f ./deployment/${DEPLOYMENT}/docker-compose.yml up -d
+docker compose --project-name "${DEPLOYMENT_NAME}" -f ./docker-compose.yml up -d
 
 ls -la $ABS_PROJECT_DIR
 

@@ -21,7 +21,7 @@ export ABS_DATA_DIR_PREFIX=$(realpath ${DATA_DIR_PREFIX}${DEPLOYMENT})
 ls -la $ABS_DATA_DIR_PREFIX
 
 DEPLOYMENT_NAME=${DEPLOYMENT//./-}
-docker compose --project-name "${DEPLOYMENT_NAME}" -f ./deployment/${DEPLOYMENT}/docker-compose.yml down && wait $!
+docker compose --project-name "${DEPLOYMENT_NAME}" -f ./docker-compose.yml down && wait $!
 
 if [ -n "$REMOVE_ALL_DATA" ]; then
     [ -d "$ABS_DATA_DIR_PREFIX/${DEPLOYMENT}" ] && sudo rm -rf $ABS_DATA_DIR_PREFIX/${DEPLOYMENT}
