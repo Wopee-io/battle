@@ -6,6 +6,10 @@ on:
     branches:
       - '**'
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   extract-prefix:
     runs-on: ubuntu-latest

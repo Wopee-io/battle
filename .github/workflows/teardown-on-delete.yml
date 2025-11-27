@@ -4,6 +4,10 @@ run-name: Teardown ${{ github.event.ref }}
 on:
   delete:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   extract-prefix:
     runs-on: ubuntu-latest
