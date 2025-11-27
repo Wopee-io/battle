@@ -1,4 +1,4 @@
-echo #!/=$bin/bash
+#!/bin/bash
 
 echo "Load versions into environment variables from env files."
 echo "--------------------------------------------------------"
