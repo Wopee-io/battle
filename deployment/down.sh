@@ -16,17 +16,28 @@ SECRETS_ENC_FILE="./deployment/${DEPLOYMENT}/secrets.enc.env"
 VERSIONS_ENV_FILE="./deployment/${DEPLOYMENT}/versions.env"
 . ./utils/load-versions-env.sh
 
-export DEPLOYMENT_PREFIX="${DEPLOYMENT_PREFIX:-main}"
-DEPLOYMENT_NAME="${DEPLOYMENT_PREFIX}-${DEPLOYMENT//./-}"
+: "${DATA_DIR_PREFIX:=/srv/}"
 
-export ABS_PROJECT_DIR=$(realpath ${DATA_DIR_PREFIX}${DEPLOYMENT_NAME})
+DEPLOYMENT_PREFIX="${DEPLOYMENT_PREFIX-}"
+if [ -n "${DEPLOYMENT_PREFIX}" ]; then
+  export STACK_PREFIX="${DEPLOYMENT_PREFIX}-"
+  DEPLOYMENT_NAME="${DEPLOYMENT_PREFIX}-${DEPLOYMENT//./-}"
+else
+  export STACK_PREFIX=""
+  DEPLOYMENT_NAME="${DEPLOYMENT//./-}"
+fi
 
-ls -la ${ABS_PROJECT_DIR}
+: "${DOMAIN:=battle.wopee.io}"
+export APP_HOST="${STACK_PREFIX}app.${DOMAIN}"
+
+export ABS_PROJECT_DIR="${DATA_DIR_PREFIX%/}/${DEPLOYMENT_NAME}"
+
+ls -la "${ABS_PROJECT_DIR}" || true
 
 docker compose --project-name "${DEPLOYMENT_NAME}" -f ./docker-compose.yml down && wait $!
 
 if [ -n "$REMOVE_ALL_DATA" ]; then
-    [ -d "${ABS_PROJECT_DIR}/postgresql" ] && sudo rm -rf ${ABS_PROJECT_DIR}/postgresql
+    [ -d "${ABS_PROJECT_DIR}/postgresql" ] && sudo rm -rf "${ABS_PROJECT_DIR}/postgresql"
 fi
 
-ls -la ${ABS_PROJECT_DIR}
+ls -la "${ABS_PROJECT_DIR}" || true

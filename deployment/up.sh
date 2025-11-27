@@ -19,15 +19,34 @@ VERSIONS_ENV_FILE="./deployment/${DEPLOYMENT}/versions.env"
 . ./utils/load-versions-env.sh
 
 
-export DEPLOYMENT_PREFIX="${DEPLOYMENT_PREFIX:-main}"
+DEPLOYMENT_PREFIX="${DEPLOYMENT_PREFIX-}"
 
-# replace dots with dashes for docker compose project name
-DEPLOYMENT_NAME="${DEPLOYMENT_PREFIX}-${DEPLOYMENT//./-}"
+# Use empty prefix by default; prefix is appended when provided (e.g., staging-).
+if [ -n "${DEPLOYMENT_PREFIX}" ]; then
+  export STACK_PREFIX="${DEPLOYMENT_PREFIX}-"
+  DEPLOYMENT_NAME="${DEPLOYMENT_PREFIX}-${DEPLOYMENT//./-}"
+else
+  export STACK_PREFIX=""
+  DEPLOYMENT_NAME="${DEPLOYMENT//./-}"
+fi
 
-export ABS_PROJECT_DIR=$(realpath ${DATA_DIR_PREFIX}${DEPLOYMENT_NAME})
-[ ! -d "${ABS_PROJECT_DIR}/postgresql" ] && mkdir -p "${ABS_PROJECT_DIR}/postgresql"
+# Ensure a sane data root even if env loading failed in CI shells.
+: "${DATA_DIR_PREFIX:=/srv/}"
+DATA_ROOT="${DATA_DIR_PREFIX%/}/${DEPLOYMENT_NAME}"
+export ABS_PROJECT_DIR="$(mkdir -p "${DATA_ROOT}" && realpath "${DATA_ROOT}")"
+mkdir -p "${ABS_PROJECT_DIR}/postgresql"
 
-ls -la $ABS_PROJECT_DIR
+: "${DOMAIN:=battle.wopee.io}"
+export APP_HOST="${STACK_PREFIX}app.${DOMAIN}"
+
+for required in POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB SECRET_KEY DOMAIN; do
+  if [ -z "${!required:-}" ]; then
+    echo "Missing required environment variable: ${required}" >&2
+    exit 1
+  fi
+done
+
+ls -la "$ABS_PROJECT_DIR"
 
 docker compose --project-name "${DEPLOYMENT_NAME}" -f ./docker-compose.yml pull && wait $!
 
@@ -39,5 +58,4 @@ fi
 
 docker compose --project-name "${DEPLOYMENT_NAME}" -f ./docker-compose.yml up -d
 
-ls -la $ABS_PROJECT_DIR
-
+ls -la "$ABS_PROJECT_DIR"
