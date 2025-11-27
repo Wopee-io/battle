@@ -6,10 +6,6 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-# Build arguments for environment variables
-ARG VITE_API_URL
-ENV VITE_API_URL=$VITE_API_URL
-
 # Copy source and build
 COPY . .
 RUN npm run build
@@ -20,33 +16,13 @@ FROM nginx:alpine
 # Copy built assets
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Custom nginx config for SPA routing and API proxying
-RUN cat > /etc/nginx/conf.d/default.conf << 'EOF'
-server {
-    listen 80;
-    server_name _;
-    root /usr/share/nginx/html;
-    index index.html;
+# Copy nginx config template with dynamic BACKEND_URL
+# nginx:alpine automatically processes /etc/nginx/templates/*.template files
+# with envsubst at startup, outputting to /etc/nginx/conf.d/
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
-    # SPA routing - serve index.html for all non-file requests
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # API proxy to backend
-    location ~ ^/(auth|items|health|docs|openapi.json) {
-        proxy_pass http://battle-backend:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # Gzip compression
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
-}
-EOF
+# Only substitute BACKEND_URL, preserve nginx variables like $uri, $host
+ENV NGINX_ENVSUBST_FILTER=BACKEND_URL
 
 EXPOSE 80
 

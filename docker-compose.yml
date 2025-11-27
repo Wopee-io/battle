@@ -1,7 +1,7 @@
 services:
   battle-db:
     image: postgres:18
-    container_name: battle-db
+    container_name: ${DEPLOYMENT_PREFIX:-main}-battle-db
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
@@ -10,13 +10,13 @@ services:
       retries: 5
       timeout: 5s
     volumes:
-      - battle-db-data:/var/lib/postgresql
+      -  ${ABS_PROJECT_DIR}/postgresql:/var/lib/postgresql
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "5433:5432"
+    expose:
+      - "5432"
     networks:
       - battle-internal
 
@@ -24,56 +24,53 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: battle-backend
+    container_name: ${DEPLOYMENT_PREFIX:-main}-battle-backend
     restart: unless-stopped
     depends_on:
       battle-db:
         condition: service_healthy
     environment:
-      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@battle-db:5432/${POSTGRES_DB}"
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DEPLOYMENT_PREFIX:-main}-battle-db:5432/${POSTGRES_DB}"
       SECRET_KEY: ${SECRET_KEY}
       CORS_ORIGINS: ${CORS_ORIGINS}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     networks:
       - battle-internal
       - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.battle-api.rule=Host(`app.battle.wopee.io`) && PathPrefix(`/auth`, `/items`, `/health`, `/docs`, `/openapi.json`)"
-      - "traefik.http.routers.battle-api.entrypoints=websecure"
-      - "traefik.http.routers.battle-api.tls.certresolver=letsencrypt"
-      - "traefik.http.services.battle-api.loadbalancer.server.port=8000"
+      - "traefik.http.routers.${DEPLOYMENT_PREFIX:-main}-battle-api.rule=Host(`${DEPLOYMENT_PREFIX:-main}-app.battle.wopee.io`) && PathPrefix(`/auth`, `/items`, `/health`, `/docs`, `/openapi.json`)"
+      - "traefik.http.routers.${DEPLOYMENT_PREFIX:-main}-battle-api.entrypoints=websecure"
+      - "traefik.http.routers.${DEPLOYMENT_PREFIX:-main}-battle-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${DEPLOYMENT_PREFIX:-main}-battle-api.loadbalancer.server.port=8000"
 
   battle-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        VITE_API_URL: ${VITE_API_URL:-}
-    container_name: battle-frontend
+    container_name: ${DEPLOYMENT_PREFIX:-main}-battle-frontend
     restart: unless-stopped
     depends_on:
       - battle-backend
-    ports:
-      - "3000:80"
+    environment:
+      BACKEND_URL: ${DEPLOYMENT_PREFIX:-main}-battle-backend:8000
+    expose:
+      - "3000"
     networks:
       - battle-internal
       - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.battle-app.rule=Host(`app.battle.wopee.io`)"
-      - "traefik.http.routers.battle-app.entrypoints=websecure"
-      - "traefik.http.routers.battle-app.tls.certresolver=letsencrypt"
-      - "traefik.http.services.battle-app.loadbalancer.server.port=80"
+      - "traefik.http.routers.${DEPLOYMENT_PREFIX:-main}-battle-app.rule=Host(`${DEPLOYMENT_PREFIX:-main}-app.battle.wopee.io`)"
+      - "traefik.http.routers.${DEPLOYMENT_PREFIX:-main}-battle-app.entrypoints=websecure"
+      - "traefik.http.routers.${DEPLOYMENT_PREFIX:-main}-battle-app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${DEPLOYMENT_PREFIX:-main}-battle-app.loadbalancer.server.port=3000"
 
-volumes:
-  battle-db-data:
-    driver: local
 
 networks:
   battle-internal:

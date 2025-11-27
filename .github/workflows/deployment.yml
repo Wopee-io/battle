@@ -1,5 +1,5 @@
 name: Deployment operations
-run-name: Run ${{ inputs.DEPLOYMENT }} ${{ inputs.SCRIPT_FILE }} by @${{ github.actor }}
+run-name: Run ${{ inputs.DEPLOYMENT_PREFIX || 'main' }}-${{ inputs.DEPLOYMENT }} ${{ inputs.SCRIPT_FILE }} by @${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -19,6 +19,11 @@ on:
         options:
         - up.sh
         - down.sh
+      DEPLOYMENT_PREFIX:
+        type: string
+        description: "Prefix for stack, containers, traefik labels, and subdomain"
+        required: false
+        default: "main"
       FORCE_REBUILD_SPAWNER:
         type: boolean
         description: "Force rebuild spawner image (ignore cache)"
@@ -34,6 +39,10 @@ on:
         type: string
         required: true
         default: "up.sh"
+      DEPLOYMENT_PREFIX:
+        type: string
+        required: false
+        default: "main"
 
 permissions:
   contents: read
@@ -97,6 +106,7 @@ jobs:
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
+          DEPLOYMENT_PREFIX: ${{ inputs.DEPLOYMENT_PREFIX || 'main' }}
           ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
         run: |

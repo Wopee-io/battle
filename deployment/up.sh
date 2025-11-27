@@ -18,13 +18,16 @@ SECRETS_ENC_FILE="./deployment/${DEPLOYMENT}/secrets.enc.env"
 VERSIONS_ENV_FILE="./deployment/${DEPLOYMENT}/versions.env"
 . ./utils/load-versions-env.sh
 
-[ ! -d "${DATA_DIR_PREFIX}${DEPLOYMENT}" ] && mkdir -p "${DATA_DIR_PREFIX}${DEPLOYMENT}"
-export ABS_PROJECT_DIR=$(realpath ${DATA_DIR_PREFIX}${DEPLOYMENT})
 
-ls -la $ABS_PROJECT_DIR
+export DEPLOYMENT_PREFIX="${DEPLOYMENT_PREFIX:-main}"
 
 # replace dots with dashes for docker compose project name
-DEPLOYMENT_NAME=${DEPLOYMENT//./-}
+DEPLOYMENT_NAME="${DEPLOYMENT_PREFIX}-${DEPLOYMENT//./-}"
+
+export ABS_PROJECT_DIR=$(realpath ${DATA_DIR_PREFIX}${DEPLOYMENT_NAME})
+[ ! -d "${ABS_PROJECT_DIR}/postgresql" ] && mkdir -p "${ABS_PROJECT_DIR}/postgresql"
+
+ls -la $ABS_PROJECT_DIR
 
 docker compose --project-name "${DEPLOYMENT_NAME}" -f ./docker-compose.yml pull && wait $!
 
