@@ -1,0 +1,33 @@
+name: Deploy on Push
+run-name: Deploy ${{ github.ref_name }}
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  extract-prefix:
+    runs-on: ubuntu-latest
+    outputs:
+      prefix: ${{ steps.get-prefix.outputs.prefix }}
+    steps:
+      - name: Extract branch name as prefix
+        id: get-prefix
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          # Take only the part after the last /
+          PREFIX="${BRANCH##*/}"
+          # Replace _ with -, convert to lowercase
+          PREFIX=$(echo "$PREFIX" | tr '_' '-' | tr '[:upper:]' '[:lower:]')
+          echo "prefix=$PREFIX" >> $GITHUB_OUTPUT
+          echo "Extracted prefix: $PREFIX from branch: $BRANCH"
+
+  deploy:
+    needs: [extract-prefix]
+    uses: ./.github/workflows/deployment.yml
+    with:
+      DEPLOYMENT: battle.wopee.io
+      SCRIPT_FILE: up.sh
+      DEPLOYMENT_PREFIX: ${{ needs.extract-prefix.outputs.prefix }}
+    secrets: inherit

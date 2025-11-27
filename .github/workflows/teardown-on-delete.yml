@@ -1,0 +1,33 @@
+name: Teardown on Branch Delete
+run-name: Teardown ${{ github.event.ref }}
+
+on:
+  delete:
+
+jobs:
+  extract-prefix:
+    runs-on: ubuntu-latest
+    # Only run for branch deletions, not tag deletions
+    if: github.event.ref_type == 'branch'
+    outputs:
+      prefix: ${{ steps.get-prefix.outputs.prefix }}
+    steps:
+      - name: Extract deleted branch name as prefix
+        id: get-prefix
+        run: |
+          BRANCH="${{ github.event.ref }}"
+          # Take only the part after the last /
+          PREFIX="${BRANCH##*/}"
+          # Replace _ with -, convert to lowercase
+          PREFIX=$(echo "$PREFIX" | tr '_' '-' | tr '[:upper:]' '[:lower:]')
+          echo "prefix=$PREFIX" >> $GITHUB_OUTPUT
+          echo "Extracted prefix: $PREFIX from deleted branch: $BRANCH"
+
+  teardown:
+    needs: [extract-prefix]
+    uses: ./.github/workflows/deployment.yml
+    with:
+      DEPLOYMENT: battle.wopee.io
+      SCRIPT_FILE: down.sh
+      DEPLOYMENT_PREFIX: ${{ needs.extract-prefix.outputs.prefix }}
+    secrets: inherit
