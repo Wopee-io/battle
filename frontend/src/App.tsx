@@ -5,7 +5,7 @@ import ProtectedExample from "./components/ProtectedExample";
 
 function Home() {
   return (
-    <div className="text-center py-12">
+    <div className="text-center py-12 yellow-glow min-h-screen">
       <h1 className="text-4xl font-bold text-gray-900 mb-4">
         Welcome to Battle
       </h1>
