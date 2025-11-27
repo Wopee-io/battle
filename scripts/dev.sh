@@ -11,6 +11,14 @@ if [ -f .env ]; then
   set -a; source .env; set +a
 fi
 
+# Port defaults
+DB_PORT="${DB_PORT:-5432}"
+BACKEND_PORT="${BACKEND_PORT:-8000}"
+VITE_PORT="${VITE_PORT:-3000}"
+
+# Set DATABASE_URL for local development
+export DATABASE_URL="postgresql://${POSTGRES_USER:-battle}:${POSTGRES_PASSWORD:-changeme}@localhost:${DB_PORT}/${POSTGRES_DB:-battle}"
+
 echo "Starting Battle dev environment..."
 
 # 1. Database
@@ -19,15 +27,15 @@ docker-compose up battle-db -d
 sleep 2
 
 # 2. Backend
-echo "[2/3] Starting backend on :8000..."
+echo "[2/3] Starting backend on :${BACKEND_PORT}..."
 cd backend
 source .venv/bin/activate
-nohup uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > "$PROJECT_ROOT/logs/backend.log" 2>&1 &
+nohup uvicorn app.main:app --reload --host 0.0.0.0 --port ${BACKEND_PORT} > "$PROJECT_ROOT/logs/backend.log" 2>&1 &
 echo $! > "$PROJECT_ROOT/logs/backend.pid"
 cd "$PROJECT_ROOT"
 
 # 3. Frontend
-echo "[3/3] Starting frontend on :3000..."
+echo "[3/3] Starting frontend on :${VITE_PORT}..."
 cd frontend
 nohup npm run dev > "$PROJECT_ROOT/logs/frontend.log" 2>&1 &
 echo $! > "$PROJECT_ROOT/logs/frontend.pid"
@@ -37,8 +45,9 @@ sleep 2
 
 echo ""
 echo "Dev environment ready!"
-echo "  Frontend: http://localhost:3000"
-echo "  Backend:  http://localhost:8000"
-echo "  API Docs: http://localhost:8000/docs"
+echo "  Frontend: http://localhost:${VITE_PORT}"
+echo "  Backend:  http://localhost:${BACKEND_PORT}"
+echo "  API Docs: http://localhost:${BACKEND_PORT}/docs"
+echo "  Database: localhost:${DB_PORT}"
 echo ""
 echo "Stop: ./scripts/dev-stop.sh"
